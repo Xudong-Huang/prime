@@ -57,7 +57,7 @@ pub fn prime(max: usize) -> Generator<'static, (), usize> {
     let mut vec = vec![true; (max + 1) / 2];
     // mark 1 as non-prime
     vec[0] = false;
-    let top = (max as f32).sqrt() as usize + 1;
+    let top = (max as f32).sqrt() as usize;
     // println!("top = {}", top);
 
     coroutine::scope(|s| for i in prime(top) {
