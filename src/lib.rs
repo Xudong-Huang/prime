@@ -8,16 +8,22 @@ extern crate generator;
 use may::coroutine;
 use generator::Generator;
 
-fn filter<'a>(vec: &'a [u8], step: usize) {
+fn filter<'a>(vec: &'a [bool], step: usize) {
+    // the least step is 3, we already filter step=2 in the vec representation
+    if step < 3 {
+        return;
+    }
     #[allow(mutable_transmutes)]
-    let mut_vec: &mut [u8] = unsafe { ::std::mem::transmute(vec) };
+    let mut_vec: &mut [bool] = unsafe { ::std::mem::transmute(vec) };
     // step form beginning, ignore the very first one which is a prime number
-    let mut i = step + step - 1;
+    // let mut i = step + step - 1;
+    let mut i = step / 2 + step;
     let len = vec.len();
 
     // mark the non-prime ones, skip the frist one
     while i < len {
-        mut_vec[i] = 1;
+        // concurrent write the same value is ok!!
+        mut_vec[i] = false;
         i += step;
     }
 }
@@ -47,10 +53,10 @@ pub fn prime(max: usize) -> Generator<'static, (), usize> {
     //     });
     // }
 
-    // alloc the vec in heap
-    let mut vec = vec![0u8; max];
+    // alloc the vec in heap, ignore the step=2 items(odd numbers)
+    let mut vec = vec![true; (max + 1) / 2];
     // mark 1 as non-prime
-    vec[0] = 1;
+    vec[0] = false;
     let top = (max as f32).sqrt() as usize + 1;
     // println!("top = {}", top);
 
@@ -62,13 +68,14 @@ pub fn prime(max: usize) -> Generator<'static, (), usize> {
 
 
     generator::Gn::new_scoped(move |mut s| {
-                                  for (i, v) in vec.iter().enumerate() {
-                                      if *v == 0 {
-                                          s.yield_with(i + 1);
-                                      }
-                                  }
-                                  done!();
-                              })
+        s.yield_with(2);
+        for (i, v) in vec.iter().enumerate() {
+            if *v {
+                s.yield_with(i * 2 + 1);
+            }
+        }
+        done!();
+    })
 }
 
 
