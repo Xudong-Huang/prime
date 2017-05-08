@@ -1,12 +1,12 @@
 #![feature(test)]
-extern crate test;
+#![feature(conservative_impl_trait)]
 
 extern crate may;
+extern crate test;
 #[macro_use]
 extern crate generator;
 
 use may::coroutine;
-use generator::Generator;
 
 fn filter<'a>(vec: &'a [bool], step: usize) {
     // the least step is 3, we already filter step=2 in the vec representation
@@ -28,7 +28,7 @@ fn filter<'a>(vec: &'a [bool], step: usize) {
     }
 }
 
-pub fn prime(max: usize) -> Generator<'static, (), usize> {
+pub fn prime(max: usize) -> impl Iterator<Item = usize> + 'static {
 
     //=========================
     // early return
