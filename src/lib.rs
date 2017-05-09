@@ -9,10 +9,6 @@ extern crate generator;
 use may::coroutine;
 
 fn filter<'a>(vec: &'a [bool], step: usize) {
-    // the least step is 3, we already filter step=2 in the vec representation
-    if step < 3 {
-        return;
-    }
     #[allow(mutable_transmutes)]
     let mut_vec: &mut [bool] = unsafe { ::std::mem::transmute(vec) };
     // step form beginning, ignore the very first one which is a prime number
@@ -29,7 +25,6 @@ fn filter<'a>(vec: &'a [bool], step: usize) {
 }
 
 pub fn prime(max: usize) -> impl Iterator<Item = usize> + 'static {
-
     //=========================
     // early return
     //=========================
@@ -61,6 +56,11 @@ pub fn prime(max: usize) -> impl Iterator<Item = usize> + 'static {
     // println!("top = {}", top);
 
     coroutine::scope(|s| for i in prime(top) {
+                         // the least step is 3, we already filter step=2
+                         // in the vec representation
+                         if i == 2 {
+                             continue;
+                         }
                          let v = &vec;
                          s.spawn(move || filter(&v, i));
                      });
