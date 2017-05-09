@@ -9,14 +9,12 @@ extern crate generator;
 use may::coroutine;
 
 fn filter<'a>(vec: &'a [bool], step: usize) {
-    #[allow(mutable_transmutes)]
-    let mut_vec: &mut [bool] = unsafe { ::std::mem::transmute(vec) };
     // step form beginning, ignore the very first one which is a prime number
-    // let mut i = step + step - 1;
     let mut i = step / 2 + step;
-    let len = vec.len();
 
-    // mark the non-prime ones, skip the frist one
+    // mark the non-prime ones
+    let mut_vec: &mut [bool] = unsafe { &mut *(vec as *const _ as *mut _) };
+    let len = vec.len();
     while i < len {
         // concurrent write the same value is ok!!
         mut_vec[i] = false;
@@ -25,23 +23,13 @@ fn filter<'a>(vec: &'a [bool], step: usize) {
 }
 
 pub fn prime(max: usize) -> impl Iterator<Item = usize> + 'static {
-    //=========================
     // early return
-    //=========================
-
-    // if max <= 2 {
-    //     return generator::Gn::new(|| 2);
-    // }
-
     if max <= 210 {
         return generator::Gn::new_scoped(move |mut s| {
             let vec = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71,
                        73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151,
                        157, 163, 167, 173, 179, 181, 191, 193, 197, 199];
-            for i in vec.iter() {
-                if *i > max {
-                    break;
-                }
+            for i in vec.iter().take_while(|v| **v <= max) {
                 s.yield_with(*i);
             }
             done!();
@@ -52,32 +40,23 @@ pub fn prime(max: usize) -> impl Iterator<Item = usize> + 'static {
     let mut vec = vec![true; (max + 1) / 2];
     // mark 1 as non-prime
     vec[0] = false;
-    let top = (max as f32).sqrt() as usize;
-    // println!("top = {}", top);
 
-    coroutine::scope(|s| for i in prime(top) {
-                         // the least step is 3, we already filter step=2
-                         // in the vec representation
-                         if i == 2 {
-                             continue;
-                         }
+    let top = (max as f32).sqrt() as usize;
+
+    // skip step=2 which is already filtered
+    coroutine::scope(|s| for i in prime(top).skip(1) {
                          let v = &vec;
                          s.spawn(move || filter(&v, i));
                      });
 
-
-
     generator::Gn::new_scoped(move |mut s| {
-        s.yield_with(2);
-        for (i, v) in vec.iter().enumerate() {
-            if *v {
-                s.yield_with(i * 2 + 1);
-            }
-        }
-        done!();
-    })
+                                  s.yield_with(2);
+                                  for (i, _) in vec.into_iter().enumerate().filter(|&(_, v)| v) {
+                                      s.yield_with(i * 2 + 1);
+                                  }
+                                  done!();
+                              })
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -85,10 +64,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let mut sum = 0;
-        for v in prime(500) {
-            sum += v;
-        }
+        let sum = prime(500).sum::<usize>();
         assert_eq!(sum, 21536);
     }
 
