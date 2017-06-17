@@ -8,7 +8,7 @@ extern crate generator;
 
 use may::coroutine;
 
-fn filter<'a>(vec: &'a [bool], step: usize) {
+fn filter(vec: &[bool], step: usize) {
     // step form beginning, ignore the very first one which is a prime number
     let mut i = step / 2 + step;
 
@@ -45,17 +45,17 @@ pub fn prime(max: usize) -> impl Iterator<Item = usize> + 'static {
 
     // skip step=2 which is already filtered
     coroutine::scope(|s| for i in prime(top).skip(1) {
-                         let v = &vec;
-                         s.spawn(move || filter(&v, i));
-                     });
+        let v = &vec;
+        s.spawn(move || filter(v, i));
+    });
 
     generator::Gn::new_scoped(move |mut s| {
-                                  s.yield_with(2);
-                                  for (i, _) in vec.into_iter().enumerate().filter(|&(_, v)| v) {
-                                      s.yield_with(i * 2 + 1);
-                                  }
-                                  done!();
-                              })
+        s.yield_with(2);
+        for (i, _) in vec.into_iter().enumerate().filter(|&(_, v)| v) {
+            s.yield_with(i * 2 + 1);
+        }
+        done!();
+    })
 }
 
 #[cfg(test)]
