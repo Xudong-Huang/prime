@@ -2,7 +2,6 @@
 #![feature(conservative_impl_trait)]
 
 extern crate may;
-extern crate test;
 #[macro_use]
 extern crate generator;
 
@@ -60,6 +59,7 @@ pub fn prime(max: usize) -> impl Iterator<Item = usize> + 'static {
 
 #[cfg(test)]
 mod tests {
+    extern crate test;
     use super::*;
 
     #[test]
