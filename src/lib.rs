@@ -1,3 +1,5 @@
+#![cfg_attr(nightly, feature(test))]
+
 #[macro_use]
 extern crate may;
 #[macro_use]
@@ -71,8 +73,9 @@ pub fn prime(max: usize) -> impl Iterator<Item = usize> + 'static {
     })
 }
 
-#[cfg(test)]
+#[cfg(all(nightly, test))]
 mod tests {
+    extern crate test;
     use super::*;
 
     #[test]
@@ -81,9 +84,9 @@ mod tests {
         assert_eq!(sum, 21536);
     }
 
-    // #[bench]
-    // fn bench(b: &mut test::Bencher) {
-    //     may::config().set_workers(4);
-    //     b.iter(|| prime(1_000_000));
-    // }
+    #[bench]
+    fn bench(b: &mut test::Bencher) {
+        may::config().set_workers(4);
+        b.iter(|| prime(1_000_000));
+    }
 }
