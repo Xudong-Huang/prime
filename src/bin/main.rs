@@ -1,12 +1,7 @@
-extern crate may;
-extern crate prime;
-
 use prime::prime;
 use std::time::Instant;
 
 fn main() {
-    may::config().set_workers(4);
-
     for v in prime(500) {
         println!("p = {}", v);
     }

@@ -1,9 +1,5 @@
-#[macro_use]
-extern crate may;
-#[macro_use]
-extern crate generator;
-
-use may::coroutine;
+use std::iter::FromIterator;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 // quick algorithm for usize sqrt
 // fn fast_sqrt(n: usize) -> usize {
@@ -16,16 +12,15 @@ use may::coroutine;
 //     (delta >> 1) - 1
 // }
 
-fn filter(vec: &[bool], step: usize) {
+fn filter(vec: &[AtomicBool], step: usize) {
     // step form beginning, ignore the very first one which is a prime number
     let mut i = step / 2 + step;
 
     // mark the non-prime ones
-    let mut_vec: &mut [bool] = unsafe { &mut *(vec as *const _ as *mut _) };
     let len = vec.len();
     while i < len {
         // concurrent write the same value is ok!!
-        mut_vec[i] = false;
+        vec[i].store(false, Ordering::Relaxed);
         i += step;
     }
 }
@@ -42,32 +37,37 @@ pub fn prime(max: usize) -> impl Iterator<Item = usize> + 'static {
             for i in vec.iter().take_while(|v| **v <= max) {
                 s.yield_with(*i);
             }
-            done!();
+            generator::done!();
         });
     }
 
     // alloc the vec in heap, ignore the step=2 items(odd numbers)
-    let mut vec = vec![true; (max + 1) / 2];
+    let vec =
+        Vec::from_iter(std::iter::from_fn(|| Some(AtomicBool::new(true))).take((max + 1) / 2));
     // mark 1 as non-prime
-    vec[0] = false;
+    vec[0].store(false, Ordering::Relaxed);
 
     let top = (max as f32).sqrt() as usize;
     // let top = fast_sqrt(max);
 
     // skip step=2 which is already filtered
-    coroutine::scope(|s| {
+    may::coroutine::scope(|s| {
         for i in prime(top).skip(1) {
             let v = &vec;
-            go!(s, move || filter(v, i));
+            may::go!(s, move || filter(v, i));
         }
     });
 
     generator::Gn::new_scoped(move |mut s| {
         s.yield_with(2);
-        for (i, _) in vec.into_iter().enumerate().filter(|&(_, v)| v) {
+        for (i, _) in vec
+            .into_iter()
+            .enumerate()
+            .filter(|(_, v)| v.load(Ordering::Relaxed))
+        {
             s.yield_with(i * 2 + 1);
         }
-        done!();
+        generator::done!();
     })
 }
 
