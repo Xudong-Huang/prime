@@ -7,4 +7,3 @@ authors = ["Xudong Huang <huangxu008@hotmail.com>"]
 [dependencies]
 may = "0.3"
 generator = "0.8"
-rustversion = "1.0"

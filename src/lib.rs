@@ -1,4 +1,3 @@
-use std::iter::FromIterator;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 // quick algorithm for usize sqrt
@@ -42,8 +41,10 @@ pub fn prime(max: usize) -> impl Iterator<Item = usize> + 'static {
     }
 
     // alloc the vec in heap, ignore the step=2 items(odd numbers)
-    let vec =
-        Vec::from_iter(std::iter::from_fn(|| Some(AtomicBool::new(true))).take((max + 1) / 2));
+    let mut vec: Vec<bool> = Vec::new();
+    vec.resize((max + 1) / 2, true);
+    let vec: Vec<AtomicBool> = unsafe { std::mem::transmute(vec) };
+
     // mark 1 as non-prime
     vec[0].store(false, Ordering::Relaxed);
 
