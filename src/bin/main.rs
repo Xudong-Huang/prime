@@ -2,8 +2,8 @@ use prime::prime;
 use std::time::Instant;
 
 fn main() {
-    for v in prime(500) {
-        println!("p = {}", v);
+    for (i, v) in prime(500).enumerate() {
+        println!("p{i} = {v}");
     }
 
     println!("\n\n");
